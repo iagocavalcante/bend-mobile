@@ -10,16 +10,19 @@ a small U32 expression subset, not Bend's full parallel runtime.
 
 ## Get started
 
-Requires Bun, Git, and the Android NDK shader compiler. Platform builds also
-require Xcode or the Android SDK.
+Requires macOS or Linux with Bun, Git, `clang++`, and the Android NDK shader
+compiler. Platform builds also require Xcode or the Android SDK.
 
 ```sh
-git clone https://github.com/iagocavalcante/bend-mobile.git
-cd bend-mobile
-bun run setup
-bun run build
+bun create iagocavalcante/bend-mobile my-app
+cd my-app
 bun run test
 ```
+
+Bun downloads the starter and runs `bootstrap`: check asset-build tools, fetch
+the pinned Bend compiler, and build counter assets for both platforms.
+Then follow the setup guide to launch an iOS or Android app.
+Run `bun run doctor` to check the tools again.
 
 - [Setup and app API](docs/getting-started.md)
 - [Native compute scope and tests](docs/native-compute.md)

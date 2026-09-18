@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import vm from "node:vm";
+import { fileURLToPath } from "node:url";
 import bend from "../.cache/bend/bend2/main";
 import { kernelExpression } from "../scripts/kernel";
 
@@ -63,5 +64,5 @@ try {
   writeFileSync(file, "import Base\ndef compute(+x: U32) -> U32:\n  (x / 2 : U32)\n");
   await assert.rejects(() => kernelExpression(file), /Unsupported native kernel/);
 } finally { rmSync(dir, { recursive: true }); }
-assert.equal(await kernelExpression(new URL("../examples/kernel.bend", import.meta.url).pathname), "((x * x) + 1u)");
+assert.equal(await kernelExpression(fileURLToPath(new URL("../examples/kernel.bend", import.meta.url))), "((x * x) + 1u)");
 console.log("PASS: navigation, text, restore, failed-save rollback, native result validation and kernel rejection.");

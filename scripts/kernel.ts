@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { compiler } from "./setup";
+import { shaderCompiler } from "./doctor";
 
 // A deliberately bounded backend: type-check with Bend, lower its typed core,
 // then emit identical unsigned scalar expressions for C++, Metal and Vulkan.
@@ -83,11 +83,7 @@ export async function buildKernel(root: string, file: string) {
   await Bun.write(`${dir}/kernel.h`, `// Generated from ${file.split("/").at(-1)}; do not edit.\n#pragma once\n#include <stdint.h>\nstatic inline uint32_t bend_kernel(uint32_t x) { return ${expression}; }\n`);
   await Bun.write(`${dir}/kernel.metal`, `#include <metal_stdlib>\nusing namespace metal;\nkernel void bend_map(device const uint* src [[buffer(0)]], device uint* dst [[buffer(1)]], constant uint& count [[buffer(2)]], uint i [[thread_position_in_grid]]) {\n  if (i < count) { uint x = src[i]; dst[i] = ${expression}; }\n}\n`);
   await Bun.write(`${dir}/kernel.comp`, `#version 450\nlayout(local_size_x=64) in;\nlayout(set=0,binding=0,std430) readonly buffer Input { uint src[]; };\nlayout(set=0,binding=1,std430) writeonly buffer Output { uint dst[]; };\nlayout(push_constant) uniform Size { uint count; };\nvoid main() { uint i=gl_GlobalInvocationID.x; if(i<count) { uint x=src[i]; dst[i]=${expression}; } }\n`);
-  const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? `${homedir()}/${process.platform === "darwin" ? "Library/Android/sdk" : "Android/Sdk"}`;
-  const host = process.platform === "darwin" ? "darwin-x86_64" : "linux-x86_64";
-  const ndks = existsSync(`${sdk}/ndk`) ? readdirSync(`${sdk}/ndk`).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })) : [];
-  const glslc = process.env.GLSLC ?? ndks.map(n => `${sdk}/ndk/${n}/shader-tools/${host}/glslc`).find(existsSync);
-  if (!glslc) throw new Error("Install the Android NDK or set GLSLC to its shader compiler to build the Vulkan backend.");
+  const glslc = shaderCompiler();
   const assets = `${root}/android/app/src/main/assets`;
   mkdirSync(assets, { recursive: true });
   execFileSync(glslc, ["--target-env=vulkan1.0", `${dir}/kernel.comp`, "-o", `${assets}/kernel.spv`], { stdio: "inherit" });

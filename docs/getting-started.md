@@ -1,5 +1,35 @@
 # Getting started
 
+## Create an app
+
+On macOS or Linux, install Bun, Git, `clang++`, and the Android NDK shader compiler, then:
+
+```sh
+bun create iagocavalcante/bend-mobile my-app
+cd my-app
+```
+
+[Bun's GitHub template command](https://bun.com/docs/runtime/templating/create)
+downloads the published source and creates a new Git repository. Choose a new
+folder; do not use `--force` on an existing project. The template's setup hook
+runs `bun run bootstrap`: check asset-build tools, fetch the pinned Bend
+compiler, and generate the counter assets. Network access is required.
+If setup fails, fix the reported issue and run `bun run bootstrap` inside the
+created folder. Do not treat the template download alone as a successful build.
+
+Edit `examples/counter.bend` for UI/app logic and `examples/kernel.bend` for
+native numeric computation. Run `bun run build` after changes. Follow the iOS
+or Android steps below to compile and launch the native app; `bootstrap` builds
+assets, not an IPA or APK. The starter retains the demo's native app identifiers
+and `BendMobile` scheme. Set your own identifiers in `ios/project.yml` and
+`android/app/build.gradle` before distributing it.
+
+`bun run doctor` checks Git, the C++ compiler, and the same Vulkan shader
+compiler used by the build. Platform SDKs, signing and device readiness are
+checked by the native build tools in the steps below.
+
+## Work on the framework
+
 Run commands from the repository root. Requires Bun, Git, `clang++` for the native CPU smoke check, and an Android NDK
 shader compiler (`glslc`). Set `ANDROID_HOME` to your SDK or `GLSLC` to the compiler
 binary. The build discovers NDKs under the standard macOS/Linux SDK paths too.
