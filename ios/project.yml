@@ -25,7 +25,16 @@ targets:
   BendMobileUITests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [Tests]
+    sources: [Tests/CounterTests.swift]
+    dependencies:
+      - target: BendMobile
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  BendMobileComputeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests/ComputeTests.swift]
     dependencies:
       - target: BendMobile
     settings:
@@ -37,4 +46,4 @@ schemes:
       targets:
         BendMobile: all
     test:
-      targets: [BendMobileUITests]
+      targets: [BendMobileUITests, BendMobileComputeTests]

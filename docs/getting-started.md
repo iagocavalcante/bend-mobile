@@ -92,8 +92,12 @@ adb -s YOUR_DEVICE_SERIAL logcat -d -s BendCompute
 
 Record the phone model, OS version, GPU reported in the Android log, and test
 results. These checks verify correctness; they are not performance benchmarks.
-Physical-device validation is pending: the existing execution results are from
-simulators/emulators, including software Vulkan on Android.
+Verified on September 18, 2026: iPhone 17, iOS 26.6.2, Apple A19 GPU.
+Both XCTest suites passed: text input, navigation, restart persistence,
+UI-triggered CPU/Metal dispatch, and CPU/Metal correctness across 4,099 inputs
+(including overflow and a partial workgroup), empty input, and input bounds.
+Physical Android validation remains pending; Android execution has been tested
+with software Vulkan on an emulator.
 
 ## App API
 

@@ -85,6 +85,8 @@ the compiler's type and expansion limits. Shader compilation alone does not
 verify GPU execution.
 
 The platform interaction tests cover actual CPU and GPU dispatch, input,
-navigation and restart restoration. Android's additional native instrumentation
-compares CPU and Vulkan across 4,099 values, including unsigned overflow and a
-partial final workgroup. See [getting started](getting-started.md) for commands.
+navigation and restart restoration. iOS's compute XCTest and Android's native
+instrumentation compare their CPU and GPU outputs across 4,099 values, including
+unsigned overflow and a partial final workgroup. iOS passed on a physical
+iPhone 17 (Apple A19 GPU); physical Android validation is pending.
+See [getting started](getting-started.md) for commands and device results.
