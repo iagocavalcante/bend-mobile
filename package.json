@@ -1,0 +1,11 @@
+{
+  "name": "bend-mobile",
+  "description": "Experimental native iOS and Android UI framework for Bend",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "setup": "bun scripts/setup.ts",
+    "build": "bun scripts/build.ts",
+    "test": "bun scripts/build.ts && bun tests/smoke.ts"
+  }
+}

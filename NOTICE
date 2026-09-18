@@ -1,0 +1,13 @@
+Bend Mobile
+Copyright 2026 Iago Cavalcante
+
+This project uses the Bend compiler and generated runtime:
+https://github.com/bendlang/bend
+Copyright 2026 HigherOrderCO
+Licensed under the Apache License, Version 2.0.
+The compiler is fetched separately. Its license is copied into app bundles.
+
+The Android project includes the Gradle Wrapper:
+https://github.com/gradle/gradle
+Copyright Gradle, Inc. and contributors
+Licensed under the Apache License, Version 2.0.

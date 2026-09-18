@@ -1,0 +1,34 @@
+name: BendMobile
+options:
+  bundleIdPrefix: dev.bendmobile
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  BendMobile:
+    type: application
+    platform: iOS
+    sources: [Sources, Resources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.bendmobile.counter
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+  BendMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: BendMobile
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  BendMobile:
+    build:
+      targets:
+        BendMobile: all
+    test:
+      targets: [BendMobileUITests]
