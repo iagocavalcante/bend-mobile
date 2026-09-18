@@ -6,7 +6,8 @@ Render native controls on iOS and Android.
 **Experimental.** Includes text input, route navigation, local state persistence,
 and a native numeric kernel backend: CPU threads, iOS Metal, and Android Vulkan.
 General app logic runs as compiled JavaScript. Native kernels currently support
-a small U32 expression subset, not Bend's full parallel runtime.
+a small U32/Bool subset with helpers, comparisons and conditional branches,
+not Bend's full parallel runtime.
 
 ## Get started
 

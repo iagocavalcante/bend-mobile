@@ -44,7 +44,7 @@ assert.equal(details.canGoBack, true);
 assert.equal(details.tree.children[1].text, `Hello, ${unicode}`);
 assert.match(JSON.parse(app.send("input", "name", "stale")).error, /Unknown/);
 assert.match(JSON.parse(app.send("result", "computed", "[1]")).error, /Invalid native result/);
-accept(app, app.send("result", "computed", "[1,2,5,10,2]"));
+accept(app, app.send("result", "computed", "[1,2,5,10,4294967295]"));
 app = runtime();
 const restored = accept(app, app.start(details.snapshot));
 assert.equal(restored.route, "details");
@@ -64,5 +64,5 @@ try {
   writeFileSync(file, "import Base\ndef compute(+x: U32) -> U32:\n  (x / 2 : U32)\n");
   await assert.rejects(() => kernelExpression(file), /Unsupported native kernel/);
 } finally { rmSync(dir, { recursive: true }); }
-assert.equal(await kernelExpression(fileURLToPath(new URL("../examples/kernel.bend", import.meta.url))), "((x * x) + 1u)");
+assert.equal(await kernelExpression(fileURLToPath(new URL("../examples/kernel.bend", import.meta.url))), "((x > 65535u) ? 4294967295u : ((x * x) + 1u))");
 console.log("PASS: navigation, text, restore, failed-save rollback, native result validation and kernel rejection.");

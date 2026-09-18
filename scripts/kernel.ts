@@ -6,7 +6,7 @@ import { compiler } from "./setup";
 import { shaderCompiler } from "./doctor";
 
 // A deliberately bounded backend: type-check with Bend, lower its typed core,
-// then emit identical unsigned scalar expressions for C++, Metal and Vulkan.
+// then emit identical U32/Bool expressions for C++, Metal and Vulkan.
 export async function kernelExpression(file: string): Promise<string> {
   const B = await import(pathToFileURL(`${compiler}/bend2/bend.ts`).href);
   const book = B.book_nil();
@@ -22,15 +22,36 @@ export async function kernelExpression(file: string): Promise<string> {
   const operators: Record<string, string> = {
     "U32.add": "+", "U32.sub": "-", "U32.mul": "*",
     "U32.and": "&", "U32.or": "|", "U32.xor": "^",
+    "U32.is_eq": "==", "U32.is_ne": "!=", "U32.is_lt": "<",
+    "U32.is_le": "<=", "U32.is_gt": ">", "U32.is_ge": ">=",
   };
   let budget = 1024;
   const active = new Set(["compute"]);
   function emit(term: any, env: Map<number, string>): string {
     if (--budget < 0) throw new Error("Kernel expression is too large");
-    const expression = lower(term, env);
+    return bounded(lower(term, env));
+  }
+  function bounded(expression: string): string {
     // ponytail: inline helpers/bindings; emit temporaries if larger kernels need them.
     if (expression.length > 65536) throw new Error("Kernel expression is too large");
     return expression;
+  }
+  function apply(term: any, args: string[], env: Map<number, string>): string {
+    if (--budget < 0) throw new Error("Kernel expression is too large");
+    if (!args.length) return emit(term, env);
+    if (term.$ === "Lam") {
+      return apply(term.f, args.slice(1), new Map(env).set(term.i, args[0]));
+    }
+    if (term.$ === "Mat" && ["True", "False"].includes(term.k)) {
+      const yes = apply(term.h, args.slice(1), env);
+      const other = term.m;
+      // Bool constructors have no fields. A default pattern binds the scrutinee.
+      const no = other.$ === "Mat" && other.k === (term.k === "True" ? "False" : "True") && other.m.$ === "Efq"
+        ? apply(other.h, args.slice(1), env)
+        : other.$ === "Lam" ? apply(other, args, env) : null;
+      if (no !== null) return bounded(`(${args[0]} ? ${term.k === "True" ? yes : no} : ${term.k === "True" ? no : yes})`);
+    }
+    throw new Error("Unsupported native kernel application or match; only complete Bool matches are supported");
   }
   function lower(term: any, env: Map<number, string>): string {
     if (term.$ === "Ann") return emit(term.x, env);
@@ -45,9 +66,12 @@ export async function kernelExpression(file: string): Promise<string> {
       const value = B.term_show(term);
       if (/^\d+$/.test(value) && BigInt(value) <= 0xffffffffn) return `${value}u`;
     }
+    if (term.$ === "Ctr" && ["True", "False"].includes(term.k) && !term.x.length) {
+      return term.k === "True" ? "true" : "false";
+    }
     if (term.$ === "App") {
       const [fn, args] = B.term_unapply(term);
-      if (fn.$ === "Ref" && operators[fn.k] && args.length === 2) {
+      if (fn.$ === "Ref" && Object.hasOwn(operators, fn.k) && args.length === 2) {
         return `(${emit(args[0], env)} ${operators[fn.k]} ${emit(args[1], env)})`;
       }
       if (fn.$ === "Ref") {
@@ -55,23 +79,22 @@ export async function kernelExpression(file: string): Promise<string> {
         if (helper?.$ === "Def" && helper.v && !helper.u) {
           if (active.has(fn.k)) throw new Error("Unsupported native kernel recursion");
           let type = B.term_lower(helper.T);
-          let body = B.term_lower(helper.v);
-          const local = new Map<number, string>();
+          const body = B.term_lower(helper.v);
+          const values: string[] = [];
           for (const arg of args) {
-            if (type.$ !== "All" || B.term_show(type.A) !== "U32" || body.$ !== "Lam") {
-              throw new Error("Unsupported native kernel helper: expected U32 parameters and result");
+            if (type.$ !== "All" || !["U32", "Bool"].includes(B.term_show(type.A))) {
+              throw new Error("Unsupported native kernel helper: expected U32/Bool parameters and result");
             }
-            local.set(body.i, emit(arg, env));
+            values.push(emit(arg, env));
             type = type.B;
-            body = body.f;
           }
-          if (B.term_show(type) !== "U32") throw new Error("Unsupported native kernel helper result");
+          if (!["U32", "Bool"].includes(B.term_show(type))) throw new Error("Unsupported native kernel helper result");
           active.add(fn.k);
-          try { return emit(body, local); } finally { active.delete(fn.k); }
+          try { return apply(body, values, new Map()); } finally { active.delete(fn.k); }
         }
       }
     }
-    throw new Error("Unsupported native kernel construct. Supported: U32 literals, parameters, local bindings, safe U32 helpers, add/sub/mul/and/or/xor.");
+    throw new Error("Unsupported native kernel construct. Supported: U32/Bool literals, parameters, bindings, helpers, Bool matches, U32 arithmetic and comparisons.");
   }
   return emit(lambda.f, new Map([[lambda.i, "x"]]));
 }

@@ -10,9 +10,15 @@ import Base
 def square(+x: U32) -> U32:
   (x * x : U32)
 
-def compute(x: U32) -> U32:
-  squared = square(x)
-  (squared + 1 : U32)
+def square_or_max(overflow: Bool, x: U32) -> U32:
+  match overflow:
+    case True{}:
+      4294967295
+    case False{}:
+      (square(x) + 1 : U32)
+
+def compute(+x: U32) -> U32:
+  square_or_max(U32.is_gt(x, 65535), x)
 ```
 
 Use it from a Bend view:
@@ -24,6 +30,8 @@ UI.Compute{"Run on GPU", "computed", "gpu", [0, 1, 2, 3]}
 The host runs it off the UI thread, then calls
 `update("computed", "[1,2,5,10]", model)`. Use `"cpu"` to choose the CPU backend.
 A GPU error is reported explicitly; there is no silent CPU fallback.
+The example saturates instead of overflowing: inputs above 65,535 return
+4,294,967,295. Both branches execute on the selected native backend.
 
 ## Compiler boundary
 
@@ -35,15 +43,21 @@ this emitter or the native host code.
 Supported today:
 
 - One safe `compute(x: U32) -> U32` definition; `+x` allows reuse.
-- U32 literals and the input parameter.
+- U32 and Bool literals, and the input parameter.
 - `U32.add`, `sub`, `mul`, `and`, `or`, `xor` and their operator syntax.
+- Unsigned comparisons: `U32.is_eq`, `is_ne`, `is_lt`, `is_le`, `is_gt`, `is_ge`.
+- Complete Bool `match` expressions, including nested and default cases.
+  Match a Bool parameter in a helper, as above; Bend does not allow directly
+  matching a computed expression. `Bool.not`, `and`, `or`, `xor` work through
+  the same helper and match support.
 - Nested expressions and type annotations; arithmetic wraps modulo 2^32.
 - Local bindings, including reused (`+name`) bindings and variable shadowing.
-- Fully applied, safe helper functions with U32 parameters and a U32 result.
+- Fully applied, safe helper functions with U32/Bool parameters and results.
   Helpers may call other helpers; recursive calls are rejected.
 
-Other constructs fail the build. This includes division, shifts, conditionals,
-recursion, arrays, floats, closures, IO and unsafe definitions.
+Other constructs fail the build, even in an unselected branch. This includes
+division, shifts, non-Bool pattern matching, recursion, arrays, floats, closures,
+IO and unsafe definitions. The exported kernel still takes and returns U32.
 Helpers and bindings are inlined; the emitter caps traversal at 1,024 nodes and
 expanded expressions at 65,536 characters. It does not embed BendRT or
 implement Bend's general recursive fork/join GPU scheduler. The app UI and
@@ -70,7 +84,7 @@ available Metal device. Real-device performance and battery measurements remain
 necessary before making speed claims.
 
 Pipelines and CPU threads are created per job. Cache them when workloads justify
-it. These small, straight-line kernels are bounded; cancellation, scheduling
+it. These small per-element kernels are bounded; cancellation, scheduling
 priorities, shared mutable buffers and cross-element reductions are not exposed.
 
 ## Verify
@@ -79,10 +93,11 @@ priorities, shared mutable buffers and cross-element reductions are not exposed.
 bun run test
 ```
 
-This compares helper calls and local bindings against Bend's JavaScript output
-across 4,106 inputs, compiles the Vulkan shader (and Metal on macOS), and checks
-the compiler's type and expansion limits. Shader compilation alone does not
-verify GPU execution.
+This compares four kernels against Bend's JavaScript output across 4,109 inputs
+each: arithmetic helpers, all six unsigned comparisons, nested/default Bool
+matches, and the saturating demo. It compiles the Vulkan shaders (and Metal on
+macOS), and checks the compiler's type and expansion limits. Shader compilation
+alone does not verify GPU execution.
 
 The platform interaction tests cover actual CPU and GPU dispatch, input,
 navigation and restart restoration. iOS's compute XCTest and Android's native

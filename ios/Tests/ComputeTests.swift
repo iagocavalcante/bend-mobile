@@ -5,8 +5,9 @@ import Metal
 final class ComputeTests: XCTestCase {
     func testCPUAndMetalParity() throws {
         var input = (0..<4099).map { UInt32($0) &* 2654435761 }
+        input[1] = 1; input[2] = 65534; input[3] = 65535; input[4] = 65536
         input[input.count - 1] = UInt32.max
-        let expected = input.map { ($0 &* $0) &+ 1 }
+        let expected = input.map { $0 > 65535 ? UInt32.max : ($0 &* $0) &+ 1 }
         print("Native compute device: \(MTLCreateSystemDefaultDevice()?.name ?? "unavailable")")
         for backend in ["cpu", "gpu"] {
             XCTAssertEqual(try NativeCompute.run(input, backend: backend), expected)

@@ -1,5 +1,6 @@
 {
   "name": "bend-mobile",
+  "version": "0.1.0",
   "description": "Experimental native iOS and Android UI framework for Bend",
   "license": "Apache-2.0",
   "private": true,

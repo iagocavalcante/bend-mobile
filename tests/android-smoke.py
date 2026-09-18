@@ -59,7 +59,7 @@ root = screen("Hello, Iago")
 for backend in ["CPU", "GPU"]:
     tap(root, "Run on " + backend)
     root = screen(backend + " complete")
-    assert any(node.get("text") == "Result: [1,2,5,10,2]" for node in root.iter("node"))
+    assert any(node.get("text") == "Result: [1,2,5,10,4294967295]" for node in root.iter("node"))
 run("shell", "input", "keyevent", "KEYCODE_BACK")
 root = screen("Iago")
 tap(root, "Reset")

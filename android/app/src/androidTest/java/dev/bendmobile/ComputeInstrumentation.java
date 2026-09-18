@@ -10,12 +10,13 @@ public final class ComputeInstrumentation extends Instrumentation {
         try {
             long[] input = new long[4099];
             for (int i = 0; i < input.length; i++) input[i] = (i * 2654435761L) & 0xffffffffL;
+            input[1] = 1; input[2] = 65534; input[3] = 65535; input[4] = 65536;
             input[input.length - 1] = 0xffffffffL;
             for (boolean gpu : new boolean[]{false, true}) {
                 long[] output = NativeCompute.run(input, gpu, getTargetContext().getAssets());
                 if (output.length != input.length) throw new AssertionError("Result length");
                 for (int i = 0; i < input.length; i++) {
-                    long expected = (input[i] * input[i] + 1) & 0xffffffffL;
+                    long expected = input[i] > 65535 ? 0xffffffffL : input[i] * input[i] + 1;
                     if (output[i] != expected) throw new AssertionError("Backend " + gpu + " index " + i);
                 }
                 if (NativeCompute.run(new long[0], gpu, getTargetContext().getAssets()).length != 0)
