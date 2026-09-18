@@ -68,6 +68,33 @@ The smoke test **clears this demo app's data**, then checks input, navigation,
 process restoration, and CPU/GPU execution. It requires a Vulkan-capable emulator
 or device. The instrumentation test checks native outputs across 4,099 values.
 
+## Physical-device validation
+
+Connect and unlock each phone. Enable Developer Mode and trust the Mac on iOS;
+enable USB debugging and accept the computer's key on Android. List connected
+devices with `xcrun xctrace list devices` and `adb devices -l`.
+
+For iOS, configure your signing team for both targets in Xcode, then run:
+
+```sh
+xcodebuild -project ios/BendMobile.xcodeproj -scheme BendMobile \
+  -destination 'platform=iOS,id=YOUR_DEVICE_ID' \
+  -derivedDataPath ios/build test
+```
+
+For Android, run the installation and instrumentation commands above with
+`adb -s YOUR_DEVICE_SERIAL`, then run:
+
+```sh
+ANDROID_SERIAL=YOUR_DEVICE_SERIAL python3 tests/android-smoke.py
+adb -s YOUR_DEVICE_SERIAL logcat -d -s BendCompute
+```
+
+Record the phone model, OS version, GPU reported in the Android log, and test
+results. These checks verify correctness; they are not performance benchmarks.
+Physical-device validation is pending: the existing execution results are from
+simulators/emulators, including software Vulkan on Android.
+
 ## App API
 
 See [counter.bend](../examples/counter.bend) for a complete app. Export:

@@ -7,8 +7,12 @@ independently; results retain input order.
 ```python
 import Base
 
-def compute(+x: U32) -> U32:
-  ((x * x : U32) + 1 : U32)
+def square(+x: U32) -> U32:
+  (x * x : U32)
+
+def compute(x: U32) -> U32:
+  squared = square(x)
+  (squared + 1 : U32)
 ```
 
 Use it from a Bend view:
@@ -34,10 +38,14 @@ Supported today:
 - U32 literals and the input parameter.
 - `U32.add`, `sub`, `mul`, `and`, `or`, `xor` and their operator syntax.
 - Nested expressions and type annotations; arithmetic wraps modulo 2^32.
+- Local bindings, including reused (`+name`) bindings and variable shadowing.
+- Fully applied, safe helper functions with U32 parameters and a U32 result.
+  Helpers may call other helpers; recursive calls are rejected.
 
 Other constructs fail the build. This includes division, shifts, conditionals,
-helper calls, recursion, arrays, floats, closures, IO and unsafe definitions.
-The emitter caps expression size at 1,024 nodes. It does not embed BendRT or
+recursion, arrays, floats, closures, IO and unsafe definitions.
+Helpers and bindings are inlined; the emitter caps traversal at 1,024 nodes and
+expanded expressions at 65,536 characters. It does not embed BendRT or
 implement Bend's general recursive fork/join GPU scheduler. The app UI and
 reducer continue to use the JavaScript backend.
 
@@ -70,6 +78,11 @@ priorities, shared mutable buffers and cross-element reductions are not exposed.
 ```sh
 bun run test
 ```
+
+This compares helper calls and local bindings against Bend's JavaScript output
+across 4,106 inputs, compiles the Vulkan shader (and Metal on macOS), and checks
+the compiler's type and expansion limits. Shader compilation alone does not
+verify GPU execution.
 
 The platform interaction tests cover actual CPU and GPU dispatch, input,
 navigation and restart restoration. Android's additional native instrumentation

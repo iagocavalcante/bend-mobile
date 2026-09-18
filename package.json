@@ -6,7 +6,7 @@
   "scripts": {
     "setup": "bun scripts/setup.ts",
     "build": "bun scripts/build.ts",
-    "test": "bun scripts/build.ts && bun tests/smoke.ts && bun run test:cpu",
+    "test": "bun scripts/build.ts && bun tests/smoke.ts && bun tests/kernel.ts && bun run test:cpu",
     "test:cpu": "clang++ -std=c++17 -pthread tests/native-cpu.cpp native/cpu.cpp -o dist/native-cpu-test && ./dist/native-cpu-test"
   }
 }
