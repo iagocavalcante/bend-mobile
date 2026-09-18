@@ -125,7 +125,9 @@ results. These checks verify correctness; they are not performance benchmarks.
 Verified on September 18, 2026: iPhone 17, iOS 26.6.2, Apple A19 GPU.
 Both XCTest suites passed: text input, navigation, restart persistence,
 UI-triggered CPU/Metal dispatch, and CPU/Metal correctness across 4,099 inputs
-(including overflow and a partial workgroup), empty input, and input bounds.
+(including the 65,535 saturation boundary and a partial workgroup), empty input,
+and input bounds. The v0.1.0 conditional kernel and both UI-triggered backends
+passed on this device. The release walkthrough uses captured test screens.
 Physical Android validation remains pending; Android execution has been tested
 with software Vulkan on an emulator.
 

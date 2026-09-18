@@ -9,6 +9,10 @@ General app logic runs as compiled JavaScript. Native kernels currently support
 a small U32/Bool subset with helpers, comparisons and conditional branches,
 not Bend's full parallel runtime.
 
+[v0.1.0 developer preview](https://github.com/iagocavalcante/bend-mobile/releases/tag/v0.1.0)
+includes an [iPhone walkthrough](https://github.com/iagocavalcante/bend-mobile/releases/download/v0.1.0/bend-mobile-iphone-demo.mp4)
+assembled from native UI test captures.
+
 ## Get started
 
 Requires macOS or Linux with Bun, Git, `clang++`, and the Android NDK shader
