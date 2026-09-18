@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { compiler, revision } from "./setup";
+import { buildKernel } from "./kernel";
 
 const root = resolve(import.meta.dir, "..");
 const app = resolve(process.argv[2] ?? `${root}/examples/counter.bend`);
@@ -20,6 +21,7 @@ const result = await Bun.build({
 });
 if (!result.success) throw new AggregateError(result.logs, "Bend mobile build failed");
 const code = await result.outputs[0].text();
+await buildKernel(root, resolve(process.argv[3] ?? `${root}/examples/kernel.bend`));
 for (const directory of ["dist", "ios/Resources", "android/app/src/main/assets"]) {
   mkdirSync(`${root}/${directory}`, { recursive: true });
   await Bun.write(`${root}/${directory}/app.js`, code);

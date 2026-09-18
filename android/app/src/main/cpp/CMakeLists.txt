@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(bendmobile)
+set(NATIVE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../native)
+add_library(bendmobile SHARED bridge.cpp ${NATIVE_ROOT}/cpu.cpp ${NATIVE_ROOT}/vulkan.cpp)
+target_include_directories(bendmobile PRIVATE ${NATIVE_ROOT})
+target_compile_features(bendmobile PRIVATE cxx_std_17)
+target_link_libraries(bendmobile android vulkan log)

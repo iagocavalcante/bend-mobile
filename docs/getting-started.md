@@ -1,30 +1,8 @@
 # Getting started
 
-Experimental framework for writing mobile UI and app logic in Bend, with native
-iOS and Android controls. The counter is the first vertical slice, not a
-production-ready framework.
-
-```text
-counter.bend → upstream Bend compiler → bundled JavaScript
-                                          ↓
-                              init / update / view
-                                          ↓
-                       UIKit              Android Views
-                       JavaScriptCore     headless WebView JS
-```
-
-The visible UI is native on both platforms. The Android WebView only executes
-bundled code; it renders no UI, has no JavaScript-to-Java interface, blocks network
-loads, and has file/content access disabled. The app requests no Internet permission.
-Neither platform downloads code at runtime.
-
-## Build
-
-Run these commands from the repository root.
-
-Requires Bun and Git. The compiler is pinned to Bend 2.0.5, revision
-`0b7e2b11c1054f5d0f4eb955cadb47997ef1115d`; it is downloaded into `.cache/bend`.
-No npm packages are needed.
+Run commands from the repository root. Requires Bun, Git, `clang++` for the native CPU smoke check, and an Android NDK
+shader compiler (`glslc`). Set `ANDROID_HOME` to your SDK or `GLSLC` to the compiler
+binary. The build discovers NDKs under the standard macOS/Linux SDK paths too.
 
 ```sh
 bun run setup
@@ -32,24 +10,34 @@ bun run build
 bun run test
 ```
 
-`build` compiles the counter and copies the bundle to both platform projects.
-To compile another app, run `bun run build ./path/to/app.bend`.
-Build errors stop packaging; there is no handwritten replacement for Bend logic.
+Setup fetches the pinned upstream Bend compiler into `.cache/bend`. Build checks
+the app and numeric kernel, emits the JavaScript app plus C++/Metal/Vulkan kernels,
+and copies assets to the native projects. No npm dependencies are required.
 
-### iOS
+To build a different app and kernel:
 
-Requires macOS, Xcode and XcodeGen. Minimum deployment target: iOS 16.
+```sh
+bun run build ./path/app.bend ./path/kernel.bend
+```
+
+Rerun this command after changing Bend code, before rebuilding a native app.
+Generated files are ignored by Git. The compiler is pinned to revision
+`0b7e2b11c1054f5d0f4eb955cadb47997ef1115d` (Bend 2.0.5).
+
+## iOS
+
+Requires macOS, Xcode, XcodeGen, and the Xcode Metal toolchain. Minimum iOS: 16.
+If Xcode reports a missing Metal compiler, install it with
+`xcodebuild -downloadComponent MetalToolchain`.
 
 ```sh
 xcodegen generate --spec ios/project.yml
 open ios/BendMobile.xcodeproj
 ```
 
-Select the BendMobile scheme and an iPhone/iPad simulator, then Run. For a physical
-device, select your development team in Xcode. After editing Bend, rerun
-`bun run build` before rebuilding the native app.
-
-Run the native interaction test with an available simulator ID:
+Run the BendMobile scheme on an iPhone/iPad simulator. For a physical device,
+select your development team in Xcode. Metal shaders are compiled into the app;
+there is no downloaded code or runtime shader source compilation.
 
 ```sh
 xcodebuild -project ios/BendMobile.xcodeproj -scheme BendMobile \
@@ -57,73 +45,89 @@ xcodebuild -project ios/BendMobile.xcodeproj -scheme BendMobile \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO test
 ```
 
-### Android
+## Android
 
-Requires JDK 17, Android SDK 36 and a current Android System WebView. Minimum
-Android API: 26. Set `ANDROID_HOME` to the SDK directory or configure
-`android/local.properties` with `sdk.dir`.
+Requires JDK 17, SDK 36, NDK `27.1.12297006`, CMake, and a current Android System
+WebView. Minimum Android API: 26. Set `ANDROID_HOME` or use
+`android/local.properties` with `sdk.dir`. Vulkan execution requires a device
+with a Vulkan compute queue and host-visible coherent storage memory; CPU
+execution remains available when GPU execution is unsupported.
 
 ```sh
 cd android
-./gradlew :app:assembleDebug
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am start -n dev.bendmobile.counter/dev.bendmobile.BendActivity
+adb shell am instrument -w dev.bendmobile.counter.test/dev.bendmobile.ComputeInstrumentation
 cd ..
 python3 tests/android-smoke.py
 ```
 
-## Write an app
+The smoke test **clears this demo app's data**, then checks input, navigation,
+process restoration, and CPU/GPU execution. It requires a Vulkan-capable emulator
+or device. The instrumentation test checks native outputs across 4,099 values.
 
-Import `mobile.bend` and export three pure definitions:
+## App API
 
-```python
-import Base
-import ../mobile.bend as UI
+See [counter.bend](../examples/counter.bend) for a complete app. Export:
 
-def init() -> U32:
-  0
+| Definition | Purpose |
+| --- | --- |
+| `init() -> Model` | Initial reusable (`Data`) state |
+| `routes() -> List<String>` | Unique route names; first is the root |
+| `view(route: String, model: Model) -> UI.Node` | Current native view tree |
+| `update(action: String, value: String, model: Model) -> Model` | Button/input/compute result handling |
+| `schema() -> U32` | Persistence format version |
+| `save(model: Model) -> String` | Encode durable state |
+| `restore(saved: String) -> Maybe<Model>` | Validate and decode durable state |
 
-def update(action: String, count: U32) -> U32:
-  (count + 1 : U32)
+This extends the initial three-definition API; existing apps must adopt these
+signatures. Button actions receive an empty value. Inputs receive their current
+text. Compute actions receive a JSON array of unsigned integers.
 
-def view(count: U32) -> UI.Node:
-  UI.Column{[
-    UI.Text{U32.show(count)},
-    UI.Button{"Add one", "increment"}
-  ]}
-```
+| Node | Fields |
+| --- | --- |
+| `Text` | `text` |
+| `Button` | `label, action` |
+| `Input` | `key, label, value, action` |
+| `Link` | `label, route` |
+| `Back` | `label` |
+| `Compute` | `label, action, backend, input` |
+| `Column`, `Row` | `children: List<UI.Node>` |
 
-The `init`, `update` and `view` state types must agree and be reusable (`Data`).
-The bridge retains state, sends button action strings to `update`, then renders
-the new `view`. Native hosts never implement app-specific state transitions.
+Native controls retain identity across updates. Input keys must be unique within
+a screen. Focused fields keep their local text, selection, and composing spans;
+model-side replacements apply when the field is no longer focused. Input values
+must stay below 16,384 characters. Rows divide width equally; columns stack
+vertically inside a scroll view. Text follows platform font scaling.
 
-Available nodes: `Text{text}`, `Button{label, action}`, `Column{children}` and
-`Row{children}`. Rows share width equally. Columns and rows use native spacing;
-the root scrolls vertically. Text uses platform font scaling and native buttons
-expose their labels to accessibility services.
+Links push a registered route; Back pops it. Android system Back also pops the
+stack and exits at the root. The iOS example uses a native Back button. There are
+no deep links, tabs, native navigation transitions or swipe-back gestures yet.
+The stack is capped at 32 entries.
 
-Only actions in the current rendered tree are accepted. The bridge validates
-node kinds, limits trees to 1,000 nodes / 64 nesting levels and text to 16,384
-characters. Host failures display an error rather than leaving a blank screen.
+## Persistence
 
-## Current limits
+The model and route stack are stored together after every accepted event. The
+bridge prepares a candidate; the host saves its snapshot, then commits and
+renders it. Failed saves abort the candidate. iOS uses an atomic file in
+Application Support; Android uses a synchronous private preferences commit.
 
-- Sequential JavaScript backend; no Bend native CPU parallelism or GPU execution.
-- Entire view tree is replaced per event. This is suitable for the initial
-  stateless controls; inputs need stable identity, focus and selection handling.
-- State is in memory and resets when the activity/controller is recreated or the
-  process restarts. No persistence, navigation, async effects or device APIs yet.
-- No styling API, hot reload, package publishing or release signing workflow.
-- Bend checks the Bend code. The JS bridge and native renderers are outside its
-  proof boundary; this project does not claim end-to-end formal correctness.
+`save` selects durable fields. The example stores the name and counter, and
+intentionally treats compute results as transient. State survives process
+restarts and controller/activity recreation. A changed schema, malformed data,
+or rejected restore displays an error and preserves the original snapshot.
+Automatic schema migration is not implemented; keep the format compatible or
+explicitly migrate stored data before changing the schema version.
 
-Next useful milestone: stable view identity plus text input, then explicit
-effects and lifecycle-aware state storage. Native C embedding is a separate
-runtime milestone; measure before replacing the working JS backend.
+Snapshots are capped at 256K characters. This synchronous approach suits small
+app state, not documents or databases. Storage is local and not a credential
+vault; do not store secrets through this API.
 
-## Upstream
+## Native execution
 
-[Bend](https://github.com/bendlang/bend) provides the compiler and generated
-runtime, under Apache-2.0, copyright 2026 HigherOrderCO. Builds copy its license
-into both application resource directories. No upstream compiler changes are
-required. See its [language guide](https://github.com/bendlang/bend/blob/main/guide/GUIDE.md).
+See [native-compute.md](native-compute.md) for the supported kernel language,
+CPU/Metal/Vulkan backends, bounds and tests. General app logic still runs as
+JavaScript, with native controls on screen. Android's headless WebView only runs
+bundled code and cannot access files or the network.

@@ -12,7 +12,8 @@ Follow the [setup guide](docs/getting-started.md), then run:
 bun run test
 ```
 
-For native changes, build the affected platform and run its interaction test;
+The test command includes native CPU checks. For native changes, build the
+affected platform and run its interaction test;
 both commands are in the guide. In your PR, describe what changed and what you
 tested. State when you could not test a platform.
 

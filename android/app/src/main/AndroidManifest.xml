@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:label="Bend Mobile" android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false" android:supportsRtl="true">
-        <activity android:name="dev.bendmobile.BendActivity" android:exported="true">
+        <activity android:name="dev.bendmobile.BendActivity" android:exported="true"
+            android:windowSoftInputMode="adjustResize" android:enableOnBackInvokedCallback="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

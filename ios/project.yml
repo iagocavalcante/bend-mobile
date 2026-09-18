@@ -7,7 +7,11 @@ targets:
   BendMobile:
     type: application
     platform: iOS
-    sources: [Sources, Resources]
+    sources:
+      - Sources
+      - Resources
+      - ../native/cpu.cpp
+      - ../native/generated/kernel.metal
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.bendmobile.counter
@@ -16,6 +20,8 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/BendMobile-Bridging-Header.h
+        CLANG_CXX_LANGUAGE_STANDARD: c++17
   BendMobileUITests:
     type: bundle.ui-testing
     platform: iOS

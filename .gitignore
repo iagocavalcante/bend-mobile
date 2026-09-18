@@ -17,3 +17,6 @@ android/app/src/main/assets/app.js
 ios/Resources/app.js
 ios/Resources/Bend-LICENSE.txt
 android/app/src/main/assets/Bend-LICENSE.txt
+native/generated/
+android/app/src/main/assets/kernel.spv
+android/app/.cxx/
